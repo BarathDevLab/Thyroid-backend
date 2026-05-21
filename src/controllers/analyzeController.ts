@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { promises as fs } from 'fs';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY || '');
 
@@ -21,9 +22,10 @@ export const analyzeImage = async (req: MulterRequest, res: Response) => {
       generationConfig: { temperature: 0.1 }
     });
 
+    const buffer = await fs.readFile(req.file.path);
     const imagePart = {
       inlineData: {
-        data: req.file.buffer.toString('base64'),
+        data: buffer.toString('base64'),
         mimeType: req.file.mimetype
       }
     };
@@ -48,7 +50,15 @@ Respond ONLY in this JSON format, no extra text:
     const clean = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
-    res.json(parsed);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
+
+    res.json({
+      ...parsed,
+      fileUrl,
+      fileName: req.file.originalname,
+      storedFileName: req.file.filename
+    });
   } catch (err: any) {
     console.error('MedGemma error:', err.message);
     res.status(500).json({ error: 'Analysis failed. Try again.' });

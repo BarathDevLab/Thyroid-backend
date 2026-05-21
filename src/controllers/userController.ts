@@ -3,24 +3,25 @@ import User from '../models/User.js';
 
 export const getMe = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
-    const user = await User.findById(userId);
-    
+    const userId = (req as any).user?.userId;
+    let user = null;
+
+    if (userId) {
+      user = await User.findById(userId);
+    }
+
     if (!user) {
-      // Create a default user if not found (for mock purposes)
-      // Note: If userId is the MongoDB _id, it's usually auto-generated.
-      // If userId is an external ID, it should be stored as a field.
-      // Assuming userId is the MongoDB _id, we cannot create a user with a specific _id here
-      // unless it's a custom ID. For simplicity, we'll create a new user without specifying _id.
-      // If the intent was to store the external userId as a field, the schema needs adjustment.
-      // For now, we'll create a new user and return it.
-      const newUser = await User.create({
-        name: 'John Doe',
-        email: 'john.doe@example.com',
+      user = await User.findOne({ email: 'demo@local' });
+    }
+
+    if (!user) {
+      user = await User.create({
+        name: 'Local User',
+        email: 'demo@local',
         role: 'user'
       });
     }
-    
+
     res.status(200).json(user);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

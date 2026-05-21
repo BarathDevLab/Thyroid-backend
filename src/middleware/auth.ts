@@ -15,3 +15,18 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     res.status(401).json({ message: 'Invalid token' });
   }
 };
+
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string, role: string };
+    (req as any).user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+};
