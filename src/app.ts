@@ -13,6 +13,7 @@ import authRoutes from './routes/authRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import mealRoutes from './routes/mealRoutes.js';
 import analyzeRoutes from './routes/analyzeRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/meals', mealRoutes);
 app.use('/api/analyze', analyzeRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Thyrosense API is running');

@@ -30,3 +30,11 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
     res.status(401).json({ message: 'Invalid token' });
   }
 };
+
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const role = (req as any).user?.role;
+  if (role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+};

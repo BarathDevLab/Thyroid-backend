@@ -235,3 +235,61 @@ export const getReportSummary = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getAdminReportHistory = async (req: Request, res: Response) => {
+  try {
+    const reports = await Report.find({}).sort({ analyzedDate: -1 });
+    res.status(200).json(reports);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAdminSummary = async (req: Request, res: Response) => {
+  try {
+    const reports = await Report.find({}).sort({ analyzedDate: -1 });
+    const totalUsers = await User.countDocuments({});
+
+    const now = new Date();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthBuckets = Array.from({ length: 8 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (7 - i), 1);
+      return {
+        key: `${d.getFullYear()}-${d.getMonth()}`,
+        month: monthNames[d.getMonth()],
+        scans: 0
+      };
+    });
+
+    for (const report of reports) {
+      const d = new Date(report.analyzedDate || report.createdAt || Date.now());
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const bucket = monthBuckets.find((b) => b.key === key);
+      if (!bucket) continue;
+      bucket.scans += 1;
+    }
+
+    const monthlyScanData = monthBuckets.map((b) => ({ month: b.month, scans: b.scans }));
+
+    const riskCounts = { Low: 0, Moderate: 0, High: 0 } as Record<string, number>;
+    reports.forEach((report) => {
+      const level = getRiskLevel(report.analysis || report.data);
+      riskCounts[level] = (riskCounts[level] || 0) + 1;
+    });
+    const total = reports.length || 1;
+    const riskDistributionData = [
+      { name: 'Low Risk', value: Math.round((riskCounts.Low / total) * 100), color: '#22c55e' },
+      { name: 'Moderate', value: Math.round((riskCounts.Moderate / total) * 100), color: '#facc15' },
+      { name: 'High Risk', value: Math.round((riskCounts.High / total) * 100), color: '#ef4444' }
+    ];
+
+    res.status(200).json({
+      totalUsers,
+      totalReports: reports.length,
+      monthlyScanData,
+      riskDistributionData
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
